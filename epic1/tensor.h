@@ -39,14 +39,9 @@ namespace utec::algebra {
 
         template <typename... Dims>
         static std::array<size_t, tam> make_dims_array(Dims... dims) {
-            if constexpr (sizeof...(Dims) == 1 && tam > 1) {
-                std::array<size_t, tam> arr;
-                arr.fill(static_cast<size_t>(dims)...);
-                return arr;}
-            else {
-                if (sizeof...(Dims) != tam) {
-                    throw std::invalid_argument("Number of dimensions must match tensor rank");}
-                return {static_cast<size_t>(dims)...};}}
+            if (sizeof...(Dims) != tam) {
+                throw std::invalid_argument("Number of dimensions must match tensor rank");}
+            return std::array<size_t, tam>{static_cast<size_t>(dims)...};}
 
     public:
         using iterator = typename std::vector<T>::iterator;
@@ -66,7 +61,9 @@ namespace utec::algebra {
 
         template <typename... Dims>
         Tensor(Dims... dims) {
-            forma = make_dims_array(dims...);
+            if (sizeof...(Dims) != tam) {
+                throw std::invalid_argument("Number of dimensions must match tensor rank");}
+            forma = std::array<size_t, tam>{static_cast<size_t>(dims)...};
             size_t total = 1;
             for (auto d : forma) total *= d;
             datos.resize(total, T{});}
@@ -86,12 +83,24 @@ namespace utec::algebra {
             return datos[calculate_index(idxs...)];}
 
         T& operator()(const std::array<size_t, tam>& idxs) {
-            return std::apply([this](auto... args) -> T& {
-                return (*this)(args...); }, idxs);}
+            size_t indice = 0;
+            size_t paso = 1;
+            for (int i = tam - 1; i >= 0; --i) {
+                if (idxs[i] >= forma[i]) {
+                    throw std::out_of_range("Index out of range");}
+                indice += idxs[i] * paso;
+                paso *= forma[i];}
+            return datos[indice];}
 
         const T& operator()(const std::array<size_t, tam>& idxs) const {
-            return std::apply([this](auto... args) -> const T& {
-                return (*this)(args...); }, idxs);}
+            size_t indice = 0;
+            size_t paso = 1;
+            for (int i = tam - 1; i >= 0; --i) {
+                if (idxs[i] >= forma[i]) {
+                    throw std::out_of_range("Index out of range");}
+                indice += idxs[i] * paso;
+                paso *= forma[i];}
+            return datos[indice];}
 
         const std::array<size_t, tam>& shape() const noexcept {
             return forma;}
@@ -108,9 +117,9 @@ namespace utec::algebra {
 
         template <typename... Dims>
         void reshape(Dims... dims) {
-            if (sizeof...(dims) != tam) {
+            if (sizeof...(Dims) != tam) {
                 throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            std::array<size_t, tam> nueva{static_cast<size_t>(dims)...};
+            auto nueva = std::array<size_t, tam>{static_cast<size_t>(dims)...};
             reshape(nueva);}
 
         void fill(const T& valor) {
@@ -185,46 +194,81 @@ namespace utec::algebra {
             rec(rec);
             return resultado;}
 
-        Tensor operator/(const T& escalar) const {
-            Tensor r = *this;
-            for (auto& v : r.datos) v /= escalar;
-            return r;}
+        Tensor operator+(const T& escalar) const {
+            Tensor resultado(forma);
+            for (size_t i = 0; i < datos.size(); ++i) {
+                resultado.datos[i] = datos[i] + escalar;}
+            return resultado;}
 
-        friend Tensor operator+(const T& esc, const Tensor& t) { return t + esc; }
+        Tensor operator-(const T& escalar) const {
+            Tensor resultado(forma);
+            for (size_t i = 0; i < datos.size(); ++i) {
+                resultado.datos[i] = datos[i] - escalar;}
+            return resultado;}
+
+        Tensor operator*(const T& escalar) const {
+            Tensor resultado(forma);
+            for (size_t i = 0; i < datos.size(); ++i) {
+                resultado.datos[i] = datos[i] * escalar;}
+            return resultado;}
+
+        Tensor operator/(const T& escalar) const {
+            Tensor resultado(forma);
+            for (size_t i = 0; i < datos.size(); ++i) {
+                resultado.datos[i] = datos[i] / escalar;}
+            return resultado;}
+
+        friend Tensor operator+(const T& esc, const Tensor& t) {
+            return t + esc;}
 
         friend Tensor operator-(const T& esc, const Tensor& t) {
-            Tensor r = t;
-            for (auto& v : r.datos) v = esc - v;
-            return r;}
+            Tensor resultado(t.forma);
+            for (size_t i = 0; i < t.datos.size(); ++i) {
+                resultado.datos[i] = esc - t.datos[i];}
+            return resultado;}
 
-        friend Tensor operator*(const T& esc, const Tensor& t) { return t * esc; }
+        friend Tensor operator*(const T& esc, const Tensor& t) {
+            return t * esc;}
 
         friend Tensor operator/(const T& esc, const Tensor& t) {
-            Tensor r = t;
-            for (auto& v : r.datos) v = esc / v;
-            return r;}
+            Tensor resultado(t.forma);
+            for (size_t i = 0; i < t.datos.size(); ++i) {
+                resultado.datos[i] = esc / t.datos[i];}
+            return resultado;}
 
         Tensor transpose_2d() const {
-            static_assert(tam >= 2, "Cannot transpose tensor with less than 2 dimensions");
+            if constexpr (tam < 2) {
+                throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");}
             std::array<size_t, tam> nueva_forma = forma;
             std::swap(nueva_forma[tam - 1], nueva_forma[tam - 2]);
             Tensor resultado(nueva_forma);
+
             for (size_t i = 0; i < datos.size(); ++i) {
                 std::array<size_t, tam> idx;
                 size_t tmp = i;
                 for (int j = tam - 1; j >= 0; --j) {
                     size_t prod = 1;
-                    for (int k = j + 1; k < tam; ++k) prod *= forma[k];
+                    for (int k = j + 1; k < tam; ++k) {
+                        prod *= forma[k];}
                     idx[j] = tmp / prod;
                     tmp %= prod;}
+
                 auto swapped = idx;
                 std::swap(swapped[tam - 1], swapped[tam - 2]);
-                resultado(swapped) = (*this)(idx);}
+
+                size_t new_idx = 0;
+                size_t stride = 1;
+                for (int j = tam - 1; j >= 0; --j) {
+                    new_idx += swapped[j] * stride;
+                    stride *= nueva_forma[j];}
+
+                resultado.datos[new_idx] = datos[i];}
+
             return resultado;}
 
         Tensor<T, tam> transpose_2d(const Tensor<T, tam>& t) {
             if constexpr (tam < 2) {
-                throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");}
+                return t;}
             return t.transpose_2d();}
 
         friend std::ostream& operator<<(std::ostream& os, const Tensor& t) {
@@ -253,7 +297,14 @@ namespace utec::algebra {
                                 tmp /= dim;}
                             idx[tam - 2] = r;
                             idx[tam - 1] = c;
-                            os << t(idx);
+                            size_t flat_idx = 0, paso = 1;
+                            for (int j = tam - 1; j >= 0; --j) {
+                                flat_idx += idx[j] * paso;
+                                paso *= shape[j];}
+                            if (flat_idx < t.datos.size())
+                                os << t(idx);
+                            else
+                                os << 0;
                             if (c + 1 < cols) os << " ";}
                         if (r + 1 < rows) os << std::endl;}
 
@@ -266,9 +317,12 @@ namespace utec::algebra {
             else {
                 os << "{";
                 if (shape[0] > 1) os << std::endl;
-                for (size_t i = 0; i < t.datos.size(); ++i) {
-                    os << t.datos[i];
-                    if (i + 1 < t.datos.size()) os << " ";}
+                for (size_t i = 0; i < shape[0]; ++i) {
+                    if (i < t.datos.size())
+                        os << t.datos[i];
+                    else
+                        os << 0;
+                    if (i + 1 < shape[0]) os << " ";}
                 if (shape[0] > 1) os << std::endl;
                 os << "}";}
             return os;}
@@ -276,7 +330,8 @@ namespace utec::algebra {
 
     template <typename T, size_t tam>
     Tensor<T, tam> transpose_2d(const Tensor<T, tam>& t) {
-        if constexpr (tam < 2) throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");
+        if constexpr (tam < 2) {
+            return t;}
         return t.transpose_2d();}
 
     template <typename T, size_t tam>

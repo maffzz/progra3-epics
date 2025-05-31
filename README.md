@@ -3,10 +3,6 @@
 **tarea:** proyecto final  
 **cmake project:** prog3_tensor_final_project_v2025_01
 
-## indicaciones
-cada pregunta deberá incluir un archivo cabecera (.h) correspondiente:
- - `tensor.h`
-
 ## question #1 - creación, acceso, fill e impresión (3 points)
 **use case #1:**
 ```cpp
