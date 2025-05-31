@@ -39,12 +39,14 @@ namespace utec::algebra {
 
         template <typename... Dims>
         static std::array<size_t, tam> make_dims_array(Dims... dims) {
-            static_assert(sizeof...(Dims) == tam, "Number of dimensions must match tensor rank");
-            std::array<size_t, tam> arr;
-            size_t values[] = {static_cast<size_t>(dims)...};
-            for(size_t i = 0; i < tam; ++i) {
-                arr[i] = values[i];}
-            return arr;}
+            if constexpr (sizeof...(Dims) == 1 && tam > 1) {
+                std::array<size_t, tam> arr;
+                arr.fill(static_cast<size_t>(dims)...);
+                return arr;}
+            else {
+                if (sizeof...(Dims) != tam) {
+                    throw std::invalid_argument("Number of dimensions must match tensor rank");}
+                return {static_cast<size_t>(dims)...};}}
 
     public:
         using iterator = typename std::vector<T>::iterator;
@@ -64,7 +66,6 @@ namespace utec::algebra {
 
         template <typename... Dims>
         Tensor(Dims... dims) {
-            static_assert(sizeof...(Dims) == tam, "Number of constructor arguments must match tensor rank");
             forma = make_dims_array(dims...);
             size_t total = 1;
             for (auto d : forma) total *= d;
@@ -97,17 +98,19 @@ namespace utec::algebra {
 
         void reshape(const std::array<size_t, tam>& nueva_forma) {
             size_t total_nuevo = std::accumulate(nueva_forma.begin(), nueva_forma.end(), 1ul, std::multiplies<>());
-            if (total_nuevo != datos.size()) {
-                throw std::invalid_argument("Total size mismatch in reshape");}
-            forma = nueva_forma;}
+            size_t total_actual = datos.size();
+            if (total_nuevo != total_actual) {
+                if (total_nuevo > total_actual) {
+                    datos.resize(total_nuevo, T{});}
+                forma = nueva_forma;}
+            else {
+                forma = nueva_forma;}}
 
         template <typename... Dims>
         void reshape(Dims... dims) {
             if (sizeof...(dims) != tam) {
                 throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            std::array<size_t, tam> nueva;
-            size_t i = 0;
-            ((nueva[i++] = static_cast<size_t>(dims)), ...);
+            std::array<size_t, tam> nueva{static_cast<size_t>(dims)...};
             reshape(nueva);}
 
         void fill(const T& valor) {
