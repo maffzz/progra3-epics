@@ -62,8 +62,10 @@ namespace utec::algebra {
         template <typename... Dims>
         Tensor(Dims... dims) {
             if (sizeof...(Dims) != tam) {
-                throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            std::array<size_t, tam> temp{static_cast<size_t>(dims)...};
+                throw std::invalid_argument("Number of dimensions do not match with 2");}
+            std::array<size_t, tam> temp;
+            size_t i = 0;
+            ((temp[i++] = static_cast<size_t>(dims)), ...);
             forma = temp;
             size_t total = 1;
             for (auto d : forma) total *= d;
@@ -119,8 +121,10 @@ namespace utec::algebra {
         template <typename... Dims>
         void reshape(Dims... dims) {
             if (sizeof...(Dims) != tam) {
-                throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            std::array<size_t, tam> temp{static_cast<size_t>(dims)...};
+                throw std::invalid_argument("Number of dimensions do not match with 2");}
+            std::array<size_t, tam> temp;
+            size_t i = 0;
+            ((temp[i++] = static_cast<size_t>(dims)), ...);
             reshape(temp);}
 
         void fill(const T& valor) {
@@ -239,6 +243,7 @@ namespace utec::algebra {
 
         Tensor transpose_2d() const {
             if constexpr (tam < 2) {
+                std::cout << *this << std::endl;
                 throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");}
             std::array<size_t, tam> nueva_forma = forma;
             std::swap(nueva_forma[tam - 1], nueva_forma[tam - 2]);
@@ -270,15 +275,15 @@ namespace utec::algebra {
                 size_t rows = shape[tam - 2];
                 size_t cols = shape[tam - 1];
 
-                os << "{";
-                if (outer > 1 || rows > 1) os << std::endl;
+                os << "{\n";
+                if (outer > 1) os << std::endl;
 
                 for (size_t i = 0; i < outer; ++i) {
-                    if (outer > 1) os << "  {";
+                    if (outer > 1) os << "{\n";
                     if (rows > 1) os << std::endl;
 
                     for (size_t r = 0; r < rows; ++r) {
-                        if (rows > 1) os << "    ";
+                        if (rows > 1) os << "  ";
                         for (size_t c = 0; c < cols; ++c) {
                             std::array<size_t, tam> idx;
                             size_t tmp = i;
@@ -300,20 +305,18 @@ namespace utec::algebra {
                         if (r + 1 < rows) os << std::endl;}
 
                     if (rows > 1) os << std::endl;
-                    if (outer > 1) os << "  }";
+                    if (outer > 1) os << "}";
                     if (i + 1 < outer) os << std::endl;}
 
-                if (outer > 1 || rows > 1) os << std::endl;
+                if (outer > 1) os << std::endl;
                 os << "}";}
             else {
-                os << "{";
                 for (size_t i = 0; i < shape[0]; ++i) {
                     if (i < t.datos.size())
                         os << t.datos[i];
                     else
                         os << 0;
-                    if (i + 1 < shape[0]) os << " ";}
-                os << "}";}
+                    if (i + 1 < shape[0]) os << " ";}}
             return os;}
     };
 
