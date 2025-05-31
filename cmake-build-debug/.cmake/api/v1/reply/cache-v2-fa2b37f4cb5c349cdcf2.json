@@ -787,7 +787,7 @@
 				}
 			],
 			"type" : "PATH",
-			"value" : "/Library/Developer/CommandLineTools/SDKs/MacOSX15.4.sdk"
+			"value" : "/Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk"
 		},
 		{
 			"name" : "CMAKE_PLATFORM_INFO_INITIALIZED",
