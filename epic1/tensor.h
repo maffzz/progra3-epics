@@ -63,7 +63,8 @@ namespace utec::algebra {
         Tensor(Dims... dims) {
             if (sizeof...(Dims) != tam) {
                 throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            forma = std::array<size_t, tam>{static_cast<size_t>(dims)...};
+            std::array<size_t, tam> temp{static_cast<size_t>(dims)...};
+            forma = temp;
             size_t total = 1;
             for (auto d : forma) total *= d;
             datos.resize(total, T{});}
@@ -119,8 +120,8 @@ namespace utec::algebra {
         void reshape(Dims... dims) {
             if (sizeof...(Dims) != tam) {
                 throw std::invalid_argument("Number of dimensions must match tensor rank");}
-            auto nueva = std::array<size_t, tam>{static_cast<size_t>(dims)...};
-            reshape(nueva);}
+            std::array<size_t, tam> temp{static_cast<size_t>(dims)...};
+            reshape(temp);}
 
         void fill(const T& valor) {
             std::fill(datos.begin(), datos.end(), valor);}
@@ -243,27 +244,17 @@ namespace utec::algebra {
             std::swap(nueva_forma[tam - 1], nueva_forma[tam - 2]);
             Tensor resultado(nueva_forma);
 
-            for (size_t i = 0; i < datos.size(); ++i) {
-                std::array<size_t, tam> idx;
-                size_t tmp = i;
-                for (int j = tam - 1; j >= 0; --j) {
-                    size_t prod = 1;
-                    for (int k = j + 1; k < tam; ++k) {
-                        prod *= forma[k];}
-                    idx[j] = tmp / prod;
-                    tmp %= prod;}
-
-                auto swapped = idx;
-                std::swap(swapped[tam - 1], swapped[tam - 2]);
-
-                size_t new_idx = 0;
-                size_t stride = 1;
-                for (int j = tam - 1; j >= 0; --j) {
-                    new_idx += swapped[j] * stride;
-                    stride *= nueva_forma[j];}
-
-                resultado.datos[new_idx] = datos[i];}
-
+            std::array<size_t, tam> idx;
+            auto rec = [&](auto&& self, size_t d) -> void {
+                if (d == tam) {
+                    std::array<size_t, tam> new_idx = idx;
+                    std::swap(new_idx[tam - 1], new_idx[tam - 2]);
+                    resultado(new_idx) = (*this)(idx);
+                    return;}
+                for (size_t i = 0; i < forma[d]; ++i) {
+                    idx[d] = i;
+                    self(self, d + 1);}};
+            rec(rec, 0);
             return resultado;}
 
         Tensor<T, tam> transpose_2d(const Tensor<T, tam>& t) {
@@ -316,14 +307,12 @@ namespace utec::algebra {
                 os << "}";}
             else {
                 os << "{";
-                if (shape[0] > 1) os << std::endl;
                 for (size_t i = 0; i < shape[0]; ++i) {
                     if (i < t.datos.size())
                         os << t.datos[i];
                     else
                         os << 0;
                     if (i + 1 < shape[0]) os << " ";}
-                if (shape[0] > 1) os << std::endl;
                 os << "}";}
             return os;}
     };
