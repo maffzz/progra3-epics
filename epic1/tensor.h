@@ -263,96 +263,67 @@ namespace utec::algebra {
 
         friend std::ostream& operator<<(std::ostream& os, const Tensor& t) {
             const auto& shape = t.shape();
+
             if constexpr (tam == 4) {
                 os << "{" << std::endl;
                 for (size_t i = 0; i < shape[0]; ++i) {
-                    if (i > 0) os << std::endl;
                     os << "{" << std::endl;
                     for (size_t j = 0; j < shape[1]; ++j) {
-                        if (j > 0) os << std::endl;
-                        os << "{";
+                        os << "{" << std::endl;
                         for (size_t k = 0; k < shape[2]; ++k) {
-                            if (k > 0) os << std::endl;
                             for (size_t l = 0; l < shape[3]; ++l) {
                                 if (l > 0) os << " ";
-                                os << t(i, j, k, l);
-                            }
-                        }
-                        os << "}";
-                    }
-                    os << std::endl << "}";
-                }
-                os << std::endl << "}";
-                return os;
-            }
+                                os << t(i, j, k, l);}
+                            os << std::endl;}
+                        os << "}" << std::endl;}
+                    os << "}" << std::endl;}
+                os << "}" << std::endl;
+                return os;}
+
             else if constexpr (tam >= 2) {
-                size_t outer = 1;
-                for (size_t i = 0; i < tam - 2; ++i) outer *= shape[i];
-                size_t rows = shape[tam - 2];
+                size_t out = 1;
+                for (size_t i = 0; i < tam - 2; ++i) out *= shape[i];
+                size_t fils = shape[tam - 2];
                 size_t cols = shape[tam - 1];
-
                 os << "{" << std::endl;
-                if (outer > 1) os << std::endl;
+                for (size_t i = 0; i < out; ++i) {
+                    if (out > 1) os << "{" << std::endl;
 
-                for (size_t i = 0; i < outer; ++i) {
-                    if (outer > 1) {
-                        os << "{" << std::endl;
-                        if (tam > 3) {
-                            os << "{" << std::endl;
-                        }
-                    }
-                    if (rows > 1) os << std::endl;
-
-                    for (size_t r = 0; r < rows; ++r) {
-                        if (rows > 1) os << "  ";
+                    for (size_t r = 0; r < fils; ++r) {
                         for (size_t c = 0; c < cols; ++c) {
                             std::array<size_t, tam> idx;
                             size_t tmp = i;
                             for (int d = static_cast<int>(tam) - 3; d >= 0; --d) {
                                 size_t dim = shape[d];
                                 idx[d] = tmp % dim;
-                                tmp /= dim;
-                            }
+                                tmp /= dim;}
+
                             idx[tam - 2] = r;
                             idx[tam - 1] = c;
-                            size_t flat_idx = 0, paso = 1;
+                            size_t idx_now = 0, paso = 1;
                             for (int j = tam - 1; j >= 0; --j) {
-                                flat_idx += idx[j] * paso;
-                                paso *= shape[j];
-                            }
-                            if (flat_idx < t.datos.size())
+                                idx_now += idx[j] * paso;
+                                paso *= shape[j];}
+
+                            if (c > 0) os << " ";
+                            if (idx_now < t.datos.size())
                                 os << t(idx);
                             else
-                                os << 0;
-                            if (c + 1 < cols) os << " ";
-                        }
-                        if (r + 1 < rows) os << std::endl;
-                    }
+                                os << 0;}
+                        os << std::endl;}
 
-                    if (rows > 1) os << std::endl;
-                    if (outer > 1) {
-                        if (tam > 3) {
-                            os << "}" << std::endl;
-                        }
-                        os << "}";
-                        if (i + 1 < outer) os << std::endl;
-                    }
-                }
+                    if (out > 1) os << "}" << std::endl;}
+                os << "}" << std::endl;}
 
-                if (outer > 1) os << std::endl;
-                os << "}";
-            }
             else {
                 for (size_t i = 0; i < shape[0]; ++i) {
                     if (i < t.datos.size())
                         os << t.datos[i];
                     else
                         os << 0;
-                    if (i + 1 < shape[0]) os << " ";
-                }
-            }
-            return os;
-        }
+                    if (i + 1 < shape[0]) os << " ";}}
+            os << std::endl;
+            return os;}
     };
 
     template <typename T, size_t tam>
@@ -369,9 +340,9 @@ namespace utec::algebra {
         for (size_t i = 0; i < tam - 2; ++i) {
             if (A.shape()[i] != B.shape()[i])
                 throw std::invalid_argument("Matrix dimensions are compatible for multiplication BUT Batch dimensions do not match");}
-        std::array<size_t, tam> result_shape = A.shape();
-        result_shape[tam - 1] = B.shape()[tam - 1];
-        Tensor<T, tam> result(result_shape);
+        std::array<size_t, tam> forma_resultante = A.shape();
+        forma_resultante[tam - 1] = B.shape()[tam - 1];
+        Tensor<T, tam> resultado(forma_resultante);
         std::array<size_t, tam> idx;
         auto rec = [&](auto&& self, size_t d) -> void {
             if (d == tam - 2) {
@@ -389,12 +360,12 @@ namespace utec::algebra {
                         auto r_idx = idx;
                         r_idx[tam - 2] = i;
                         r_idx[tam - 1] = j;
-                        result(r_idx) = sum;}}
+                        resultado(r_idx) = sum;}}
                 return;}
             for (size_t i = 0; i < A.shape()[d]; ++i) {
                 idx[d] = i;
                 self(self, d + 1);}};
         rec(rec, 0);
-        return result;}
+        return resultado;}
 
 } // namespace utec::algebra
