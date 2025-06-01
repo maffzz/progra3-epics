@@ -243,43 +243,64 @@ namespace utec::algebra {
 
         Tensor transpose_2d() const {
             if constexpr (tam < 2) {
-                std::cout << *this << std::endl;
                 throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");}
             std::array<size_t, tam> nueva_forma = forma;
             std::swap(nueva_forma[tam - 1], nueva_forma[tam - 2]);
             Tensor resultado(nueva_forma);
 
             std::array<size_t, tam> idx;
-            auto rec = [&](auto&& self, size_t d) -> void {
-                if (d == tam) {
+            auto rec = [&](auto&& mismo, size_t dim) -> void {
+                if (dim == tam) {
                     std::array<size_t, tam> new_idx = idx;
                     std::swap(new_idx[tam - 1], new_idx[tam - 2]);
                     resultado(new_idx) = (*this)(idx);
                     return;}
-                for (size_t i = 0; i < forma[d]; ++i) {
-                    idx[d] = i;
-                    self(self, d + 1);}};
+                for (size_t i = 0; i < forma[dim]; ++i) {
+                    idx[dim] = i;
+                    mismo(mismo, dim + 1);}};
             rec(rec, 0);
             return resultado;}
 
-        Tensor<T, tam> transpose_2d(const Tensor<T, tam>& t) {
-            if constexpr (tam < 2) {
-                return t;}
-            return t.transpose_2d();}
-
         friend std::ostream& operator<<(std::ostream& os, const Tensor& t) {
             const auto& shape = t.shape();
-            if constexpr (tam >= 2) {
+            if constexpr (tam == 4) {
+                os << "{" << std::endl;
+                for (size_t i = 0; i < shape[0]; ++i) {
+                    if (i > 0) os << std::endl;
+                    os << "{" << std::endl;
+                    for (size_t j = 0; j < shape[1]; ++j) {
+                        if (j > 0) os << std::endl;
+                        os << "{";
+                        for (size_t k = 0; k < shape[2]; ++k) {
+                            if (k > 0) os << std::endl;
+                            for (size_t l = 0; l < shape[3]; ++l) {
+                                if (l > 0) os << " ";
+                                os << t(i, j, k, l);
+                            }
+                        }
+                        os << "}";
+                    }
+                    os << std::endl << "}";
+                }
+                os << std::endl << "}";
+                return os;
+            }
+            else if constexpr (tam >= 2) {
                 size_t outer = 1;
                 for (size_t i = 0; i < tam - 2; ++i) outer *= shape[i];
                 size_t rows = shape[tam - 2];
                 size_t cols = shape[tam - 1];
 
-                os << "{\n";
+                os << "{" << std::endl;
                 if (outer > 1) os << std::endl;
 
                 for (size_t i = 0; i < outer; ++i) {
-                    if (outer > 1) os << "{\n";
+                    if (outer > 1) {
+                        os << "{" << std::endl;
+                        if (tam > 3) {
+                            os << "{" << std::endl;
+                        }
+                    }
                     if (rows > 1) os << std::endl;
 
                     for (size_t r = 0; r < rows; ++r) {
@@ -290,40 +311,54 @@ namespace utec::algebra {
                             for (int d = static_cast<int>(tam) - 3; d >= 0; --d) {
                                 size_t dim = shape[d];
                                 idx[d] = tmp % dim;
-                                tmp /= dim;}
+                                tmp /= dim;
+                            }
                             idx[tam - 2] = r;
                             idx[tam - 1] = c;
                             size_t flat_idx = 0, paso = 1;
                             for (int j = tam - 1; j >= 0; --j) {
                                 flat_idx += idx[j] * paso;
-                                paso *= shape[j];}
+                                paso *= shape[j];
+                            }
                             if (flat_idx < t.datos.size())
                                 os << t(idx);
                             else
                                 os << 0;
-                            if (c + 1 < cols) os << " ";}
-                        if (r + 1 < rows) os << std::endl;}
+                            if (c + 1 < cols) os << " ";
+                        }
+                        if (r + 1 < rows) os << std::endl;
+                    }
 
                     if (rows > 1) os << std::endl;
-                    if (outer > 1) os << "}";
-                    if (i + 1 < outer) os << std::endl;}
+                    if (outer > 1) {
+                        if (tam > 3) {
+                            os << "}" << std::endl;
+                        }
+                        os << "}";
+                        if (i + 1 < outer) os << std::endl;
+                    }
+                }
 
                 if (outer > 1) os << std::endl;
-                os << "}";}
+                os << "}";
+            }
             else {
                 for (size_t i = 0; i < shape[0]; ++i) {
                     if (i < t.datos.size())
                         os << t.datos[i];
                     else
                         os << 0;
-                    if (i + 1 < shape[0]) os << " ";}}
-            return os;}
+                    if (i + 1 < shape[0]) os << " ";
+                }
+            }
+            return os;
+        }
     };
 
     template <typename T, size_t tam>
     Tensor<T, tam> transpose_2d(const Tensor<T, tam>& t) {
         if constexpr (tam < 2) {
-            return t;}
+            throw std::invalid_argument("Cannot transpose 1D tensor: need at least 2 dimensions");}
         return t.transpose_2d();}
 
     template <typename T, size_t tam>
