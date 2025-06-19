@@ -1,8 +1,8 @@
-
 cmake_minimum_required(VERSION 3.31)
 project(pong)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(epic1
         epic1/tensor.h epic1/tests_epic1.cpp)

@@ -54,28 +54,37 @@ namespace utec::algebra {
         const_iterator cbegin() const noexcept { return datos.cbegin(); }
         const_iterator cend() const noexcept { return datos.cend(); }
 
+        // Constructor para inicializar con dimensiones
         Tensor(const std::array<size_t, tam>& forma) : forma(forma) {
             size_t tam_total = 1;
             for (size_t dim : forma) tam_total *= dim;
             datos.resize(tam_total, T{});}
 
+        // Constructor que toma varios parámetros para las dimensiones
         template <typename... Dims>
         Tensor(Dims... dims) {
             if (sizeof...(Dims) != tam) {
-                throw std::invalid_argument("Number of dimensions do not match with 2");}
-            std::array<size_t, tam> temp;
-            size_t i = 0;
-            ((temp[i++] = static_cast<size_t>(dims)), ...);
+                throw std::invalid_argument("Number of dimensions does not match tensor rank.");}
+            std::array<size_t, tam> temp = {static_cast<size_t>(dims)...};
             forma = temp;
             size_t total = 1;
             for (auto d : forma) total *= d;
             datos.resize(total, T{});}
 
-        Tensor& operator=(std::initializer_list<T> lista) {
-            if (lista.size() != datos.size()) {
-                throw std::invalid_argument("Data size does not match tensor size");}
-            std::copy(lista.begin(), lista.end(), datos.begin());
-            return *this;}
+        // Constructor para inicializar con una lista de valores
+        Tensor(std::initializer_list<std::initializer_list<T>> values) {
+            size_t rows = values.size();
+            size_t cols = values.begin()->size();
+            forma = {rows, cols};
+            datos.resize(rows * cols);
+
+            size_t i = 0;
+            for (const auto& row : values) {
+                size_t j = 0;
+                for (const auto& value : row) {
+                    datos[i * cols + j] = value;
+                    ++j;}
+                ++i;}}
 
         template <typename... Idxs>
         T& operator()(Idxs... idxs) {

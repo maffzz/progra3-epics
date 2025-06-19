@@ -32,8 +32,6 @@ namespace utec::neural_network {
         virtual ~ILoss() = default;
         virtual T loss() const = 0;
         virtual Tensor<T,DIMS> loss_gradient() const = 0;
-    };
-
-}
+    };}
 
 #endif //PROG3_NN_FINAL_PROJECT_V2025_01_LAYER_H
