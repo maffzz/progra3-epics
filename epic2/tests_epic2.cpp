@@ -1,17 +1,23 @@
 #include <iostream>
-#include <vector>
 #include <iomanip>
 #include <random>
 #include "tensor.h"
-#include "nn_activation.h"
 #include "nn_dense.h"
 #include "neural_network.h"
 using namespace utec::algebra;
 
 int main() {
     // Datos del problema XOR
-    utec::algebra::Tensor<double, 2> X{{0, 0}, {0, 1}, {1, 0}, {1, 1}};  // Inicialización con valores
-    utec::algebra::Tensor<double, 2> Y{{0}, {1}, {1}, {0}};  // Las salidas esperadas para XOR
+    utec::algebra::Tensor<double, 2> X(std::array<size_t, 2>{4, 2});
+    utec::algebra::Tensor<double, 2> Y(std::array<size_t, 2>{4, 1});
+    X(0,0) = 0; X(0,1) = 0;
+    X(1,0) = 0; X(1,1) = 1;
+    X(2,0) = 1; X(2,1) = 0;
+    X(3,0) = 1; X(3,1) = 1;
+    Y(0,0) = 0;
+    Y(1,0) = 1;
+    Y(2,0) = 1;
+    Y(3,0) = 0;
 
     // Inicializador Xavier para pesos y sesgos
     std::mt19937 gen(42);

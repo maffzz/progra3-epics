@@ -1,15 +1,18 @@
+#ifndef PONG_TENSOR_H
+#define PONG_TENSOR_H
+
 #include <numeric>
 #include <iostream>
 #include <type_traits>
 
 namespace utec::algebra {
 
-    template <typename T, size_t tam>
+    template <typename G, size_t tam>
     class Tensor {
 
     private:
         std::array<size_t, tam> forma;
-        std::vector<T> datos;
+        std::vector<G> datos;
 
         template <typename... Idxs>
         size_t calculate_index(Idxs... idxs) const {
@@ -44,8 +47,8 @@ namespace utec::algebra {
             return std::array<size_t, tam>{static_cast<size_t>(dims)...};}
 
     public:
-        using iterator = typename std::vector<T>::iterator;
-        using const_iterator = typename std::vector<T>::const_iterator;
+        using iterator = typename std::vector<G>::iterator;
+        using const_iterator = typename std::vector<G>::const_iterator;
 
         iterator begin() noexcept { return datos.begin(); }
         iterator end() noexcept { return datos.end(); }
@@ -58,7 +61,8 @@ namespace utec::algebra {
         Tensor(const std::array<size_t, tam>& forma) : forma(forma) {
             size_t tam_total = 1;
             for (size_t dim : forma) tam_total *= dim;
-            datos.resize(tam_total, T{});}
+            datos.resize(tam_total, G{});
+        }
 
         // Constructor que toma varios parámetros para las dimensiones
         template <typename... Dims>
@@ -69,10 +73,11 @@ namespace utec::algebra {
             forma = temp;
             size_t total = 1;
             for (auto d : forma) total *= d;
-            datos.resize(total, T{});}
+            datos.resize(total, G{});
+        }
 
         // Constructor para inicializar con una lista de valores
-        Tensor(std::initializer_list<std::initializer_list<T>> values) {
+        Tensor(std::initializer_list<std::initializer_list<G>> values) {
             size_t rows = values.size();
             size_t cols = values.begin()->size();
             forma = {rows, cols};
@@ -87,14 +92,14 @@ namespace utec::algebra {
                 ++i;}}
 
         template <typename... Idxs>
-        T& operator()(Idxs... idxs) {
+        G& operator()(Idxs... idxs) {
             return datos[calculate_index(idxs...)];}
 
         template <typename... Idxs>
-        const T& operator()(Idxs... idxs) const {
+        const G& operator()(Idxs... idxs) const {
             return datos[calculate_index(idxs...)];}
 
-        T& operator()(const std::array<size_t, tam>& idxs) {
+        G& operator()(const std::array<size_t, tam>& idxs) {
             size_t indice = 0;
             size_t paso = 1;
             for (int i = tam - 1; i >= 0; --i) {
@@ -104,7 +109,7 @@ namespace utec::algebra {
                 paso *= forma[i];}
             return datos[indice];}
 
-        const T& operator()(const std::array<size_t, tam>& idxs) const {
+        const G& operator()(const std::array<size_t, tam>& idxs) const {
             size_t indice = 0;
             size_t paso = 1;
             for (int i = tam - 1; i >= 0; --i) {
@@ -122,7 +127,7 @@ namespace utec::algebra {
             size_t total_actual = datos.size();
             if (total_nuevo != total_actual) {
                 if (total_nuevo > total_actual) {
-                    datos.resize(total_nuevo, T{});}
+                    datos.resize(total_nuevo, G{});}
                 forma = nueva_forma;}
             else {
                 forma = nueva_forma;}}
@@ -136,7 +141,7 @@ namespace utec::algebra {
             ((temp[i++] = static_cast<size_t>(dims)), ...);
             reshape(temp);}
 
-        void fill(const T& valor) {
+        void fill(const G& valor) {
             std::fill(datos.begin(), datos.end(), valor);}
 
         Tensor operator+(const Tensor& otro) const {
@@ -208,43 +213,43 @@ namespace utec::algebra {
             rec(rec);
             return resultado;}
 
-        Tensor operator+(const T& escalar) const {
+        Tensor operator+(const G& escalar) const {
             Tensor resultado(forma);
             for (size_t i = 0; i < datos.size(); ++i) {
                 resultado.datos[i] = datos[i] + escalar;}
             return resultado;}
 
-        Tensor operator-(const T& escalar) const {
+        Tensor operator-(const G& escalar) const {
             Tensor resultado(forma);
             for (size_t i = 0; i < datos.size(); ++i) {
                 resultado.datos[i] = datos[i] - escalar;}
             return resultado;}
 
-        Tensor operator*(const T& escalar) const {
+        Tensor operator*(const G& escalar) const {
             Tensor resultado(forma);
             for (size_t i = 0; i < datos.size(); ++i) {
                 resultado.datos[i] = datos[i] * escalar;}
             return resultado;}
 
-        Tensor operator/(const T& escalar) const {
+        Tensor operator/(const G& escalar) const {
             Tensor resultado(forma);
             for (size_t i = 0; i < datos.size(); ++i) {
                 resultado.datos[i] = datos[i] / escalar;}
             return resultado;}
 
-        friend Tensor operator+(const T& esc, const Tensor& t) {
+        friend Tensor operator+(const G& esc, const Tensor& t) {
             return t + esc;}
 
-        friend Tensor operator-(const T& esc, const Tensor& t) {
+        friend Tensor operator-(const G& esc, const Tensor& t) {
             Tensor resultado(t.forma);
             for (size_t i = 0; i < t.datos.size(); ++i) {
                 resultado.datos[i] = esc - t.datos[i];}
             return resultado;}
 
-        friend Tensor operator*(const T& esc, const Tensor& t) {
+        friend Tensor operator*(const G& esc, const Tensor& t) {
             return t * esc;}
 
-        friend Tensor operator/(const T& esc, const Tensor& t) {
+        friend Tensor operator/(const G& esc, const Tensor& t) {
             Tensor resultado(t.forma);
             for (size_t i = 0; i < t.datos.size(); ++i) {
                 resultado.datos[i] = esc / t.datos[i];}
@@ -333,6 +338,43 @@ namespace utec::algebra {
                     if (i + 1 < shape[0]) os << " ";}}
             os << std::endl;
             return os;}
+
+        size_t size() const { return datos.size(); }
+
+// Devuelve la transpuesta para tensores 2D
+        Tensor T() const {
+            static_assert(tam == 2, "G() solo implementado para tensores 2D");
+            std::array<size_t, 2> new_shape = {forma[1], forma[0]};
+            Tensor result(new_shape); // Renaming this variable to "result"
+            for (size_t i = 0; i < forma[0]; ++i)
+                for (size_t j = 0; j < forma[1]; ++j)
+                    result(j, i) = (*this)(i, j); // Use the renamed "result" variable here
+            return result;
+        }
+
+        // Suma a lo largo de un eje (solo para 2D y axis=0 o axis=1)
+        Tensor sum(size_t axis) const {
+            static_assert(tam == 2, "sum() solo implementado para tensores 2D");
+            if (axis == 0) {
+                Tensor result(1, forma[1]);
+                for (size_t j = 0; j < forma[1]; ++j) {
+                    G s = 0;
+                    for (size_t i = 0; i < forma[0]; ++i) s += (*this)(i, j);
+                    result(0, j) = s;
+                }
+                return result;
+            } else if (axis == 1) {
+                Tensor result(forma[0], 1);
+                for (size_t i = 0; i < forma[0]; ++i) {
+                    G s = 0;
+                    for (size_t j = 0; j < forma[1]; ++j) s += (*this)(i, j);
+                    result(i, 0) = s;
+                }
+                return result;
+            } else {
+                throw std::invalid_argument("axis fuera de rango para sum() en tensor 2D");
+            }
+        }
     };
 
     template <typename T, size_t tam>
@@ -378,3 +420,5 @@ namespace utec::algebra {
         return resultado;}
 
 } // namespace utec::algebra
+
+#endif // PONG_TENSOR_H
